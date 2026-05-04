@@ -24,7 +24,14 @@ export async function saveImage(image: StoredImage): Promise<void> {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).put(image);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => {
+      const error = tx.error;
+      if (error?.name === 'QuotaExceededError') {
+        reject(new Error('Storage quota exceeded. Please delete some images to make room.'));
+      } else {
+        reject(error);
+      }
+    };
   });
 }
 

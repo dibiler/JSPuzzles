@@ -24,6 +24,8 @@ export function PuzzleGame({ onBack, dark, onToggleTheme }: Props) {
   const [imgDimensions, setImgDimensions] = useState<{ w: number; h: number } | null>(null);
   const [blueprintSize, setBlueprintSize] = useState<{ w: number; h: number } | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
+  const [rejectedPieceId, setRejectedPieceId] = useState<string | null>(null);
+  const [lastDropPos, setLastDropPos] = useState<{ x: number; y: number } | null>(null);
   const [activeTab, setActiveTab] = useState<'blueprint' | 'tray'>('tray');
   const blueprintRef = useRef<HTMLDivElement>(null);
 
@@ -94,8 +96,22 @@ export function PuzzleGame({ onBack, dark, onToggleTheme }: Props) {
       const col = Math.floor(x / cellW);
       const row = Math.floor(y / cellH);
 
+      let wasPlacedSuccessfully = false;
       if (row >= 0 && row < session.grid.rows && col >= 0 && col < session.grid.cols) {
-        placePiece(dragState.piece.id, row, col);
+        wasPlacedSuccessfully = placePiece(dragState.piece.id, row, col);
+        // Store the drop position for rejection animation
+        setLastDropPos({ x: e.clientX, y: e.clientY });
+      }
+
+      // If placement failed, show rejection animation
+      if (!wasPlacedSuccessfully) {
+        setRejectedPieceId(dragState.piece.id);
+        setTimeout(() => {
+          setRejectedPieceId(null);
+          setLastDropPos(null);
+        }, 500);
+      } else {
+        setLastDropPos(null);
       }
 
       setDragState(null);
@@ -227,16 +243,17 @@ export function PuzzleGame({ onBack, dark, onToggleTheme }: Props) {
         </div>
       </div>
 
-      {/* Floating drag clone */}
-      {dragState && (
+      {/* Floating drag clone / rejection animation */}
+      {(dragState || rejectedPieceId) && (
         <FloatingPiece
-          piece={dragState.piece}
+          piece={dragState?.piece || pieces.find((p) => p.id === rejectedPieceId)!}
           imageUrl={imageUrl}
           grid={grid}
           cellW={cellW}
           cellH={cellH}
-          x={dragState.currentX}
-          y={dragState.currentY}
+          x={dragState?.currentX ?? lastDropPos?.x ?? 0}
+          y={dragState?.currentY ?? lastDropPos?.y ?? 0}
+          isRejected={!!rejectedPieceId}
         />
       )}
 
@@ -395,6 +412,7 @@ function FloatingPiece({
   cellH,
   x,
   y,
+  isRejected,
 }: {
   piece: PuzzlePiece;
   imageUrl: string;
@@ -403,10 +421,11 @@ function FloatingPiece({
   cellH: number;
   x: number;
   y: number;
+  isRejected?: boolean;
 }) {
   return (
     <div
-      className="fixed pointer-events-none rounded-2xl overflow-hidden shadow-xl z-50 opacity-90"
+      className={`fixed pointer-events-none rounded-2xl overflow-hidden shadow-xl z-50 opacity-90 ${isRejected ? 'piece-rejected' : ''}`}
       style={{
         width: cellW,
         height: cellH,

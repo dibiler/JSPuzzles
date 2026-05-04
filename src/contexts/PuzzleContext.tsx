@@ -38,7 +38,7 @@ function reducer(state: PuzzleSession | null, action: PuzzleAction): PuzzleSessi
 interface PuzzleContextValue {
   session: PuzzleSession | null;
   startPuzzle: (image: StoredImage, grid: Grid) => void;
-  placePiece: (pieceId: string, targetRow: number, targetCol: number) => void;
+  placePiece: (pieceId: string, targetRow: number, targetCol: number) => boolean;
   resetPuzzle: () => void;
   isComplete: boolean;
 }
@@ -50,14 +50,25 @@ export function PuzzleProvider({ children }: { children: ReactNode }) {
 
   const isComplete = session !== null && session.placedIds.size === session.pieces.length;
 
+  const placePieceWithResult = (pieceId: string, targetRow: number, targetCol: number): boolean => {
+    if (!session) return false;
+    const piece = session.pieces.find((p) => p.id === pieceId);
+    if (!piece || session.placedIds.has(pieceId)) return false;
+    // Determine success based on isCorrectPlacement logic
+    const isCorrect = isCorrectPlacement(piece, targetRow, targetCol);
+    if (isCorrect) {
+      dispatch({ type: 'PLACE', pieceId, targetRow, targetCol });
+    }
+    return isCorrect;
+  };
+
   return (
     <PuzzleContext.Provider
       value={{
         session,
         isComplete,
         startPuzzle: (image, grid) => dispatch({ type: 'START', image, grid }),
-        placePiece: (pieceId, targetRow, targetCol) =>
-          dispatch({ type: 'PLACE', pieceId, targetRow, targetCol }),
+        placePiece: placePieceWithResult,
         resetPuzzle: () => dispatch({ type: 'RESET' }),
       }}
     >

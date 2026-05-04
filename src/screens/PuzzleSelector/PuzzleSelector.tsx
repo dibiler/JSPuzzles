@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function PuzzleSelector({ onStart, dark, onToggleTheme }: Props) {
-  const { images, loading, uploadImage, removeImage } = useImages();
+  const { images, loading, error, uploadImage, removeImage, clearError } = useImages();
   const [selectedImage, setSelectedImage] = useState<StoredImage | null>(null);
   const [selectedGrid, setSelectedGrid] = useState<Grid>(GRID_PRESETS[1]);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -27,12 +27,32 @@ export function PuzzleSelector({ onStart, dark, onToggleTheme }: Props) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await uploadImage(file);
+    try {
+      await uploadImage(file);
+    } catch {
+      // Error is already in state, displayed via error toast
+    }
     e.target.value = '';
   };
 
   return (
     <div className="min-h-screen bg-brand-cream dark:bg-brand-purple text-brand-purple dark:text-brand-cream flex flex-col items-center px-4 py-10">
+      {/* Error toast */}
+      {error && (
+        <div className="fixed top-4 right-4 max-w-sm bg-brand-orange text-white rounded-full px-6 py-3 shadow-lg flex items-start gap-3 z-50">
+          <span className="text-lg leading-none pt-0.5">⚠</span>
+          <div className="flex-1">
+            <p className="text-sm font-medium">{error}</p>
+            <button
+              onClick={clearError}
+              className="text-xs opacity-80 hover:opacity-100 mt-1 underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-3xl flex items-center justify-between mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">JSPuzzles</h1>
         <button
