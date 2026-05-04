@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Elms+Sans:ital,wdth,wght@0,75..125,100..700;1,75..125,100..700&display=swap');
+
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand-purple: #392F5A;
+  --color-brand-cream:  #FFF8F0;
+  --color-brand-teal:   #9DD9D2;
+  --color-brand-orange: #FF8811;
+  --color-brand-yellow: #F4D06F;
+}
+
+:root {
+  font-family: 'Elms Sans', system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dynamic tray width on desktop only */
+@media (min-width: 768px) {
+  .piece-tray { width: var(--tray-width, 18rem); }
+}
