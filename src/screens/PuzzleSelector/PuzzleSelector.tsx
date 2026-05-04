@@ -24,6 +24,15 @@ export function PuzzleSelector({ onStart, dark, onToggleTheme }: Props) {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Close delete modal on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && pendingDeleteId) setPendingDeleteId(null);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [pendingDeleteId]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -37,15 +46,31 @@ export function PuzzleSelector({ onStart, dark, onToggleTheme }: Props) {
 
   return (
     <div className="min-h-screen bg-brand-cream dark:bg-brand-purple text-brand-purple dark:text-brand-cream flex flex-col items-center px-4 py-10">
+      {/* Screen reader announcement of errors */}
+      {error && (
+        <div
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          Error: {error}
+        </div>
+      )}
+
       {/* Error toast */}
       {error && (
-        <div className="fixed top-4 right-4 max-w-sm bg-brand-orange text-white rounded-full px-6 py-3 shadow-lg flex items-start gap-3 z-50">
-          <span className="text-lg leading-none pt-0.5">⚠</span>
+        <div
+          className="fixed top-4 right-4 max-w-sm bg-brand-orange text-white rounded-full px-6 py-3 shadow-lg flex items-start gap-3 z-50"
+          role="alert"
+          aria-labelledby="error-title"
+        >
+          <span className="text-lg leading-none pt-0.5" aria-hidden="true">⚠</span>
           <div className="flex-1">
-            <p className="text-sm font-medium">{error}</p>
+            <p id="error-title" className="text-sm font-medium">{error}</p>
             <button
               onClick={clearError}
               className="text-xs opacity-80 hover:opacity-100 mt-1 underline"
+              aria-label="Dismiss error message"
             >
               Dismiss
             </button>
@@ -53,78 +78,89 @@ export function PuzzleSelector({ onStart, dark, onToggleTheme }: Props) {
         </div>
       )}
 
-      <div className="w-full max-w-3xl flex items-center justify-between mb-8">
+      <nav className="w-full max-w-3xl flex items-center justify-between mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">JSPuzzles</h1>
         <button
           onClick={onToggleTheme}
-          aria-label="Toggle theme"
+          aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
           className="w-8 h-8 flex items-center justify-center rounded-full text-brand-purple/50 hover:text-brand-purple dark:text-brand-cream/50 dark:hover:text-brand-cream transition-colors"
+          title={dark ? 'Switch to light theme' : 'Switch to dark theme'}
         >
           {dark ? '☀️' : '🌙'}
         </button>
-      </div>
+      </nav>
 
-      {/* Upload */}
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="mb-8 px-5 py-2.5 rounded-full bg-brand-orange hover:bg-brand-orange/90 text-white font-medium transition-colors"
-      >
-        Upload image
-      </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/gif,image/webp"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <main className="w-full max-w-3xl mx-auto flex flex-col items-center">
+        {/* Upload */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="mb-8 px-5 py-2.5 rounded-full bg-brand-orange hover:bg-brand-orange/90 text-white font-medium transition-colors"
+          aria-label="Upload a new image to create a puzzle"
+        >
+          Upload image
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          className="hidden"
+          onChange={handleFileChange}
+          aria-label="Select image file"
+        />
 
-      {/* Image library */}
-      {loading ? (
-        <p className="text-brand-purple/40 dark:text-brand-cream/40 text-sm">Loading…</p>
-      ) : images.length === 0 ? (
-        <p className="text-brand-purple/40 dark:text-brand-cream/40 text-sm">No images yet. Upload one to start.</p>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 w-full max-w-3xl mb-8">
-          {images.map((img) => (
-            <ImageCard
-              key={img.id}
-              image={img}
-              selected={selectedImage?.id === img.id}
-              onSelect={() => setSelectedImage(img)}
-              onDelete={() => setPendingDeleteId(img.id)}
-            />
-          ))}
-        </div>
-      )}
+        {/* Image library */}
+        <section className="w-full">
+          <h2 className="sr-only">Image Library</h2>
+          {loading ? (
+            <p className="text-brand-purple/40 dark:text-brand-cream/40 text-sm" aria-live="polite" aria-atomic="true">Loading…</p>
+          ) : images.length === 0 ? (
+            <p className="text-brand-purple/40 dark:text-brand-cream/40 text-sm" aria-live="polite" aria-atomic="true">No images yet. Upload one to start.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 w-full mb-8" role="grid" aria-label="Stored images">              {images.map((img) => (
+                <ImageCard
+                  key={img.id}
+                  image={img}
+                  selected={selectedImage?.id === img.id}
+                  onSelect={() => setSelectedImage(img)}
+                  onDelete={() => setPendingDeleteId(img.id)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
 
-      {/* Grid size picker */}
-      {selectedImage && (
-        <>
-          <div className="flex flex-wrap gap-2 mb-6 justify-center">
-            {GRID_PRESETS.map((g) => (
-              <button
-                key={`${g.rows}x${g.cols}`}
-                onClick={() => setSelectedGrid(g)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  selectedGrid.rows === g.rows && selectedGrid.cols === g.cols
-                    ? 'bg-brand-orange text-white border-brand-orange'
-                    : 'border-brand-purple/25 dark:border-brand-cream/25 hover:border-brand-orange dark:hover:border-brand-orange'
-                }`}
-              >
-                {g.rows}×{g.cols}
-              </button>
-            ))}
-          </div>
+        {/* Grid size picker */}
+        {selectedImage && (
+          <section className="flex flex-col items-center gap-6">
+            <fieldset className="flex flex-wrap gap-2 justify-center">
+              <legend className="sr-only">Puzzle difficulty</legend>
+              {GRID_PRESETS.map((g) => (
+                <button
+                  key={`${g.rows}x${g.cols}`}
+                  onClick={() => setSelectedGrid(g)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    selectedGrid.rows === g.rows && selectedGrid.cols === g.cols
+                      ? 'bg-brand-orange text-white border-brand-orange'
+                      : 'border-brand-purple/25 dark:border-brand-cream/25 hover:border-brand-orange dark:hover:border-brand-orange'
+                  }`}
+                  aria-pressed={selectedGrid.rows === g.rows && selectedGrid.cols === g.cols}
+                  title={`${g.rows * g.cols} puzzle pieces`}
+                >
+                  {g.rows}×{g.cols}
+                </button>
+              ))}
+            </fieldset>
 
-          <button
-            onClick={() => onStart(selectedImage, selectedGrid)}
-            className="px-6 py-3 rounded-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold transition-colors"
-          >
-            Start puzzle
-          </button>
-        </>
-      )}
+            <button
+              onClick={() => onStart(selectedImage, selectedGrid)}
+              className="px-6 py-3 rounded-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold transition-colors"
+              aria-label={`Start ${selectedGrid.rows * selectedGrid.cols} piece puzzle`}
+            >
+              Start puzzle
+            </button>
+          </section>
+        )}
+      </main>
 
       {/* Delete confirmation modal */}
       {pendingDeleteId && (
@@ -148,21 +184,41 @@ function ConfirmDeleteModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-40">
-      <div className="bg-brand-cream dark:bg-brand-purple rounded-3xl p-6 flex flex-col items-center gap-4 shadow-2xl">
-        <p className="text-lg font-semibold text-brand-purple dark:text-brand-cream">Delete image?</p>
-        <p className="text-sm text-brand-purple/70 dark:text-brand-cream/70 text-center">This will permanently remove the image and any associated puzzles.</p>
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-40"
+      role="presentation"
+      onClick={onCancel}
+    >
+      <div
+        ref={dialogRef}
+        className="bg-brand-cream dark:bg-brand-purple rounded-3xl p-6 flex flex-col items-center gap-4 shadow-2xl"
+        role="alertdialog"
+        aria-labelledby="delete-title"
+        aria-describedby="delete-description"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p id="delete-title" className="text-lg font-semibold text-brand-purple dark:text-brand-cream">Delete image?</p>
+        <p id="delete-description" className="text-sm text-brand-purple/70 dark:text-brand-cream/70 text-center">This will permanently remove the image and any associated puzzles.</p>
         <div className="flex gap-3 mt-2">
           <button
             onClick={onCancel}
             className="px-5 py-2 rounded-full border border-brand-purple/25 dark:border-brand-cream/25 hover:border-brand-purple dark:hover:border-brand-cream font-medium transition-colors"
+            aria-label="Cancel delete"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             className="px-5 py-2 rounded-full bg-brand-orange hover:bg-brand-orange/90 text-white font-medium transition-colors"
+            aria-label="Confirm delete image permanently"
           >
             Delete
           </button>
@@ -194,17 +250,28 @@ function ImageCard({
   return (
     <div
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       className={`relative rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${
         selected ? 'border-brand-orange' : 'border-transparent hover:border-brand-purple/30 dark:hover:border-brand-cream/30'
       }`}
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      aria-label={`Select image ${selected ? '(selected)' : ''}`}
     >
       {url && (
-        <img src={url} alt={image.name} className="w-full aspect-square object-cover" />
+        <img src={url} alt="" className="w-full aspect-square object-cover" />
       )}
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
         className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 text-white text-xs flex items-center justify-center"
-        aria-label="Delete image"
+        aria-label="Delete this image"
+        title="Delete this image"
       >
         ×
       </button>
