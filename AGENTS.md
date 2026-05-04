@@ -3,6 +3,15 @@
 ## Project Overview
 A web-based puzzle game where users can create custom puzzles from images stored locally in their browser or uploaded images. Players can customize the difficulty by selecting the number of puzzle pieces (grid rows and columns) and drag-and-drop pieces into their correct positions.
 
+## Design Language
+
+- **Style**: minimalist — ample whitespace, no decorative chrome
+- **Corners**: rounded (`rounded-xl`) on cards, pieces, buttons, inputs
+- **Typography**: clean sans-serif (Inter or system-ui fallback)
+- **Colors**: neutral palette with one accent color; WCAG AA contrast minimum
+- **Theme**: light/dark toggle; dark mode uses dark-neutral backgrounds (not pure black)
+- **Animations**: subtle — piece snap, completion overlay fade-in, rejected piece return
+
 ## Technology Stack
 - **Frontend Framework**: React
 - **Language**: TypeScript
@@ -13,43 +22,38 @@ A web-based puzzle game where users can create custom puzzles from images stored
 
 ## Application Architecture
 
-### UI Layout (3-Column Design)
+### UI Layout (Top Bar + 2-Column Design)
 ```
 ┌─────────────────────────────────────────────────────┐
-│                                                       │
-│  ┌──────────┬──────────────────┬──────────────────┐ │
-│  │          │                  │                  │ │
-│  │  Column  │     Column 2     │     Column 3     │ │
-│  │    1     │   (Blueprint)    │    (Pieces)      │ │
-│  │  (Menu)  │                  │                  │ │
-│  │          │                  │                  │ │
-│  └──────────┴──────────────────┴──────────────────┘ │
-│                                                       │
-└─────────────────────────────────────────────────────┘
+│  ← Back   [image name]   12/25 ████░░░   Reset      │
+├──────────────────────────────┬──────────────────────┤
+│                              │                      │
+│          Blueprint           │     Piece Tray       │
+│                              │                      │
+└──────────────────────────────┴──────────────────────┘
 ```
 
-### Column Descriptions
+On mobile: top bar persists; Blueprint and Tray become tabs.
 
-**Column 1 - Menu**
-- Current game state display
-- Back button (when in game state)
-- Game controls and settings
-- Progress indicator (optional)
-- New Game button to start puzzle selection
+### Area Descriptions
 
-**Column 2 - Puzzle Blueprint**
-- Transparent overlay of the selected image
+**Top Bar**
+- Back button (returns to Puzzle Selection)
+- Puzzle name (image filename)
+- Progress indicator: piece count + progress bar (e.g. "12 / 25 ████░░░")
+- Reset button (re-shuffles pieces, clears placements)
+
+**Blueprint (Left Column)**
+- Full image at ~25% opacity as a ghost guide
 - Grid lines showing individual puzzle piece boundaries
-- Visual feedback for valid drop zones
-- Highlight when a piece is hovering over correct position
-- Shows completed pieces (opaque) vs empty areas (transparent with grid)
+- All-cell highlight on piece hover (targeting feedback)
+- Placed pieces rendered at full opacity
 
-**Column 3 - Puzzle Pieces**
-- Scrollable list of puzzle pieces
-- Each piece displays a preview of its image
-- Pieces are draggable
-- Piece count display
-- Visual indication of placed vs unplaced pieces
+**Piece Tray (Right Column)**
+- Scrollable list of remaining (unplaced) puzzle pieces
+- Each piece rendered via CSS background clipping (no pre-generated crops)
+- Pieces are draggable via Pointer Events
+- Placed pieces are removed from the Tray
 
 ## Game States
 
